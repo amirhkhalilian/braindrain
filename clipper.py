@@ -126,14 +126,15 @@ def export_clip(raw: mne.io.BaseRaw, edf_start: datetime,
         )
     t_end_s = min(t_end_s, rec_duration)
 
-    raw_crop = raw.copy().crop(tmin=t_start_s, tmax=t_end_s)
+    raw_crop = raw.copy().crop(tmin=t_start_s, tmax=t_end_s, include_tmax=False)
 
     # Update meas_date to the actual clip start
     new_meas_date = edf_start + timedelta(seconds=t_start_s)
     raw_crop.set_meas_date(new_meas_date)
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    raw_crop.export(str(out_path), fmt="edf", overwrite=True)
+    raw_crop.export(str(out_path), fmt="edf",
+                    physical_range="channelwise", overwrite=True)
 
 
 # ---------------------------------------------------------------------------
