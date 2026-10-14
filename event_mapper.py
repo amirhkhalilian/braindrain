@@ -22,6 +22,7 @@ Options
 
 import argparse
 import csv
+import re
 import sys
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -63,11 +64,27 @@ def load_events(csv_path: str, patient_id: str) -> list[tuple[datetime, str]]:
                 if not row[d_i] or not row[t_i] or not row[e_i]:
                     continue
                 date_str = row[d_i].strip()
-                time_str = row[t_i].strip().zfill(4)
-                dt = datetime.strptime(
-                    f"{date_str} {time_str[:2]}:{time_str[2:]}",
-                    "%m/%d/%y %H:%M",
-                )
+                raw_time = row[t_i].strip()
+
+                # times must be 1-4 digits (e.g. '311' or '0311' -> 03:11)
+                if not re.fullmatch(r"\d{1,4}", raw_time):
+                    raise ValueError(
+                        f"Invalid time {raw_time!r} on {date_str} for patient "
+                        f"{patient_id}: expected 1-4 digits like '311' or '0311'."
+                    )
+                time_str = raw_time.zfill(4)
+
+                try:
+                    dt = datetime.strptime(
+                        f"{date_str} {time_str[:2]}:{time_str[2:]}",
+                        "%m/%d/%Y %H:%M",
+                    )
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid date/time {date_str!r} {raw_time!r} for patient "
+                        f"{patient_id}: expected date as M/D/YYYY and a valid "
+                        f"HHMM time. ({e})"
+                    ) from e
                 # make UTC-aware so comparisons with meas_date work
                 dt = dt.replace(tzinfo=timezone.utc)
                 events[row[e_i]].append(dt)
