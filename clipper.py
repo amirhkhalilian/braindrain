@@ -165,6 +165,13 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         help="Directory where clip files will be saved",
     )
+    p.add_argument(
+        "--out-stem", "--out_stem",
+        dest="out_stem",
+        metavar="STEM",
+        help="Stem for output file names (default: input EDF file name "
+             "without extension)",
+    )
 
     # ---- explicit clips ----
     p.add_argument(
@@ -239,7 +246,7 @@ def main() -> None:
     raw = mne.io.read_raw_edf(str(in_path), preload=False, verbose=False)
     edf_start = edf_start_datetime(raw)
     rec_duration_s = raw.n_times / raw.info["sfreq"]
-    stem = in_path.stem
+    stem = args.out_stem or in_path.stem
 
     print(f"  Recording start : {edf_start}")
     print(f"  Duration        : {rec_duration_s:.1f} s  ({rec_duration_s/3600:.3f} h)")
