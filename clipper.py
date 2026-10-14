@@ -172,6 +172,14 @@ def build_parser() -> argparse.ArgumentParser:
         help="Stem for output file names (default: input EDF file name "
              "without extension)",
     )
+    p.add_argument(
+        "--start-index", "--start_index",
+        dest="start_index",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Number given to the first clip in output file names (default: 1)",
+    )
 
     # ---- explicit clips ----
     p.add_argument(
@@ -228,6 +236,9 @@ def main() -> None:
         if args.n_clips < 1:
             parser.error("--n-clips must be >= 1.")
 
+    if args.start_index < 0:
+        parser.error("--start-index must be >= 0.")
+
     if not args.clips and not args.seq_start:
         parser.error(
             "Provide at least one --clip START DURATION  "
@@ -277,13 +288,14 @@ def main() -> None:
 
     # --- generate clips ---
     errors = []
-    for idx, (t_start_s, t_end_s) in enumerate(clip_jobs, start=1):
+    for n, (t_start_s, t_end_s) in enumerate(clip_jobs, start=1):
+        idx = args.start_index + n - 1
         t_start_abs = edf_start + timedelta(seconds=t_start_s)
         t_end_abs   = edf_start + timedelta(seconds=min(t_end_s, rec_duration_s))
         out_path = make_output_name(out_dir, stem, idx, t_start_abs, t_end_abs)
 
         print(
-            f"  [{idx:03d}/{len(clip_jobs):03d}]  "
+            f"  [{n:03d}/{len(clip_jobs):03d}]  "
             f"{t_start_abs.strftime('%H:%M:%S')} -> "
             f"{t_end_abs.strftime('%H:%M:%S')}  "
             f"({t_end_s - t_start_s:.1f} s)  =>  {out_path.name}"
