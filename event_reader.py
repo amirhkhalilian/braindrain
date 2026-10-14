@@ -2,6 +2,7 @@
 
 import argparse
 import csv
+import re
 from datetime import datetime
 from collections import defaultdict
 
@@ -31,11 +32,26 @@ def load_events(csv_path, patient_id):
                     continue
 
                 date_str = row[d_i].strip()
-                time_str = row[t_i].strip().zfill(4)
+                raw_time = row[t_i].strip()
 
-                dt = datetime.strptime(
-                    f"{date_str} {time_str[:2]}:{time_str[2:]}", "%m/%d/%y %H:%M"
-                )
+                # times must be 1-4 digits (e.g. '311' or '0311' -> 03:11)
+                if not re.fullmatch(r"\d{1,4}", raw_time):
+                    raise ValueError(
+                        f"Invalid time {raw_time!r} on {date_str} for patient "
+                        f"{patient_id}: expected 1-4 digits like '311' or '0311'."
+                    )
+                time_str = raw_time.zfill(4)
+
+                try:
+                    dt = datetime.strptime(
+                        f"{date_str} {time_str[:2]}:{time_str[2:]}", "%m/%d/%Y %H:%M"
+                    )
+                except ValueError as e:
+                    raise ValueError(
+                        f"Invalid date/time {date_str!r} {raw_time!r} for patient "
+                        f"{patient_id}: expected date as M/D/YYYY and a valid "
+                        f"HHMM time. ({e})"
+                    ) from e
 
                 events[row[e_i]].append(dt)
 
